@@ -1,7 +1,7 @@
-package ai.sagesource.llm.openai;
+package ai.sagesource.llm.client.openai;
 
-import ai.sagesource.llm.LLMClient;
-import ai.sagesource.llm.LLMClientConfig;
+import ai.sagesource.llm.client.LLMClient;
+import ai.sagesource.llm.client.LLMClientConfig;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.core.Timeout;

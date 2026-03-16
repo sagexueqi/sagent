@@ -11,6 +11,7 @@
     <modules>
         <module>sagent-llm</module>
         <module>sagent-base</module>
+        <module>sagent-agent</module>
     </modules>
 
     <properties>

@@ -1,4 +1,4 @@
-package ai.sagesource.llm;
+package ai.sagesource.llm.client;
 
 import lombok.Data;
 

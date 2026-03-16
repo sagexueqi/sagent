@@ -1,4 +1,4 @@
-package ai.sagesource.llm;
+package ai.sagesource.llm.client;
 
 /**
  * LLM Client Abstract Interface
