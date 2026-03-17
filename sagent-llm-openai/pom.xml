@@ -8,7 +8,7 @@
         <artifactId>sagent</artifactId>
         <version>${revision}</version>
     </parent>
-    <artifactId>sagent-llm</artifactId>
+    <artifactId>sagent-llm-openai</artifactId>
     <packaging>jar</packaging>
 
     <properties>
@@ -18,7 +18,13 @@
     <dependencies>
         <dependency>
             <groupId>ai.sagesource</groupId>
-            <artifactId>sagent-base</artifactId>
+            <artifactId>sagent-llm</artifactId>
+        </dependency>
+
+        <!-- OpenAI -->
+        <dependency>
+            <groupId>com.openai</groupId>
+            <artifactId>openai-java</artifactId>
         </dependency>
     </dependencies>
 </project>

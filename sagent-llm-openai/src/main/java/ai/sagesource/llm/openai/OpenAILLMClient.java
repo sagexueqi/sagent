@@ -1,4 +1,4 @@
-package ai.sagesource.llm.client.openai;
+package ai.sagesource.llm.openai;
 
 import ai.sagesource.llm.client.LLMClient;
 import ai.sagesource.llm.client.LLMClientConfig;
@@ -34,6 +34,16 @@ public class OpenAILLMClient implements LLMClient<OpenAIClient> {
     @Override
     public OpenAIClient client() {
         return this.client;
+    }
+
+    @Override
+    public String model() {
+        return clientConfig.getModel();
+    }
+
+    @Override
+    public long maxToken() {
+        return clientConfig.getMaxToken();
     }
 
     /**

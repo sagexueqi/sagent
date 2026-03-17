@@ -21,4 +21,18 @@ public interface LLMClient<CLIENT> {
      * @return
      */
     CLIENT client();
+
+    /**
+     * return model name
+     *
+     * @return
+     */
+    String model();
+
+    /**
+     * max completion token
+     *
+     * @return
+     */
+    long maxToken();
 }
