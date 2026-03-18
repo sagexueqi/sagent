@@ -5,6 +5,7 @@ import ai.sagesource.llm.completion.LLMCompletion;
 import ai.sagesource.llm.completion.LLMCompletionMessage;
 import ai.sagesource.llm.completion.chat.models.messages.ChatLLMCompletionMessage;
 import ai.sagesource.llm.completion.chat.models.response.ChatLLMCompletionResponse;
+import ai.sagesource.llm.function.FunctionToolDefinition;
 
 import java.util.List;
 
@@ -24,6 +25,16 @@ public abstract class ChatLLMCompletion<LLM_CLIENT extends LLMClient<?>> impleme
         this.llmClient = llmClient;
     }
 
-    public abstract ChatLLMCompletionResponse thinking(List<ChatLLMCompletionMessage> messages, float temperature);
+    /**
+     * Sync Thinking
+     *
+     * @param messages
+     * @param functions
+     * @param temperature
+     * @return
+     */
+    public abstract ChatLLMCompletionResponse thinking(List<ChatLLMCompletionMessage> messages,
+                                                       List<FunctionToolDefinition> functions,
+                                                       float temperature);
 
 }
