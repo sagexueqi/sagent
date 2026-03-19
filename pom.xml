@@ -13,6 +13,8 @@
         <module>sagent-base</module>
         <module>sagent-agent</module>
         <module>sagent-llm-openai</module>
+        <module>sagent-tool</module>
+        <module>sagent-example</module>
     </modules>
 
     <properties>
@@ -41,6 +43,11 @@
             <dependency>
                 <groupId>ai.sagesource.sagent</groupId>
                 <artifactId>sagent-llm</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.sagesource.sagent</groupId>
+                <artifactId>sagent-llm-openai</artifactId>
                 <version>${revision}</version>
             </dependency>
 
