@@ -1,7 +1,8 @@
 package ai.sagesource.llm.openai;
 
-import ai.sagesource.base.utils.DotEnvUtils;
-import ai.sagesource.llm.client.LLMClientConfig;
+import ai.sagesource.sagent.base.utils.DotEnvUtils;
+import ai.sagesource.sagent.llm.client.LLMClientConfig;
+import ai.sagesource.sagent.llm.openai.OpenAILLMClient;
 import com.fasterxml.jackson.annotation.JsonClassDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.openai.models.chat.completions.ChatCompletion;
