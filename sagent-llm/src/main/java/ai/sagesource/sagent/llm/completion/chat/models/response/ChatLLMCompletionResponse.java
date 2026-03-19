@@ -27,5 +27,5 @@ public class ChatLLMCompletionResponse implements LLMCompletionResponse {
     /**
      * Tool Call List
      */
-    private List<ChatLLMCompletionResponseToolCall> tooCalls;
+    private List<ChatLLMCompletionResponseToolCall> toolCalls;
 }
