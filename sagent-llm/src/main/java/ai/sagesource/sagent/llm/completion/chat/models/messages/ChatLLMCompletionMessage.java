@@ -1,7 +1,9 @@
 package ai.sagesource.sagent.llm.completion.chat.models.messages;
 
 import ai.sagesource.sagent.llm.completion.LLMCompletionMessage;
+import lombok.Data;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 
 import java.time.Instant;
 import java.util.Map;
@@ -13,26 +15,18 @@ import java.util.UUID;
  * @author: sage.xue
  * @time: 2026/3/16
  */
-@Getter
+@Data
+@Accessors(fluent = true)
 public abstract class ChatLLMCompletionMessage implements LLMCompletionMessage {
 
     /**
      * Chat Content
      */
-    private final String              content;
+    private String              content;
     /**
      * additional info
      */
-    private       Map<String, Object> additional;
-
-    public ChatLLMCompletionMessage(String content, Map<String, Object> additional) {
-        this.content = content;
-        this.additional = additional;
-    }
-
-    public ChatLLMCompletionMessage(String content) {
-        this.content = content;
-    }
+    private Map<String, Object> additional;
 
     @Override
     public String id() {

@@ -10,14 +10,6 @@ import java.util.Map;
  */
 public class ChatLLMCompletionSystemMessage extends ChatLLMCompletionMessage {
 
-    public ChatLLMCompletionSystemMessage(String content, Map<String, Object> additional) {
-        super(content, additional);
-    }
-
-    public ChatLLMCompletionSystemMessage(String content) {
-        super(content);
-    }
-
     @Override
     public String role() {
         return "system";

@@ -3,16 +3,12 @@ package ai.sagesource.sagent.llm.openai;
 import ai.sagesource.sagent.llm.completion.chat.ChatLLMCompletion;
 import ai.sagesource.sagent.llm.completion.chat.models.messages.*;
 import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
-import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponseFunctionToolCall;
 import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponseToolCall;
 import ai.sagesource.sagent.llm.function.FunctionToolDefinition;
+import ai.sagesource.sagent.llm.openai.support.OpenAIChatCompletionMessageToolCallSupport;
+import ai.sagesource.sagent.llm.openai.support.OpenAIFunctionDefinitionSupport;
 import com.openai.client.OpenAIClient;
-import com.openai.core.JsonValue;
-import com.openai.models.FunctionDefinition;
-import com.openai.models.FunctionParameters;
-import com.openai.models.chat.completions.ChatCompletion;
-import com.openai.models.chat.completions.ChatCompletionCreateParams;
-import com.openai.models.chat.completions.ChatCompletionFunctionTool;
+import com.openai.models.chat.completions.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,7 +29,9 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
     public ChatLLMCompletionResponse thinking(List<ChatLLMCompletionMessage> messages,
                                               List<FunctionToolDefinition> functions,
                                               float temperature) {
-        ChatLLMCompletionResponse response = new ChatLLMCompletionResponse();
+        ChatLLMCompletionResponse         response         = new ChatLLMCompletionResponse();
+        ChatLLMCompletionAssistantMessage assistantMessage = new ChatLLMCompletionAssistantMessage();
+        response.message(assistantMessage);
 
         // get openai client
         OpenAIClient openAIClient = llmClient.client();
@@ -45,29 +43,15 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
                 .map(ChatCompletion.Choice::message)
                 .flatMap(message -> {
                     // sync response has content
-                    message.content().ifPresent(response::content);
+                    message.content().ifPresent(assistantMessage::content);
+                    // return tool call stream
                     return message.toolCalls().stream().flatMap(Collection::stream);
-                }).forEach(toolCall -> {
-                    // process tool call
-                    ChatLLMCompletionResponseToolCall chatLLMCompletionResponseToolCall = new ChatLLMCompletionResponseToolCall();
-
-                    ChatLLMCompletionResponseFunctionToolCall chatLLMCompletionResponseFunctionToolCall = new ChatLLMCompletionResponseFunctionToolCall();
-                    chatLLMCompletionResponseFunctionToolCall.id(toolCall.asFunction().id());
-                    chatLLMCompletionResponseFunctionToolCall.functionName(toolCall.asFunction().function().name());
-                    Map<Object, Object> argsMap = toolCall.asFunction().function().arguments(Map.class);
-                    if (argsMap != null) {
-                        chatLLMCompletionResponseFunctionToolCall.arguments(argsMap.entrySet().stream().collect(
-                                Collectors.toMap(
-                                        entry -> entry.getKey().toString(),
-                                        entry -> entry.getValue().toString()
-                                )
-                        ));
-                    }
-                    chatLLMCompletionResponseToolCall.function(chatLLMCompletionResponseFunctionToolCall);
-                    toolCalls.add(chatLLMCompletionResponseToolCall);
+                }).forEach(chatCompletionMessageToolCall -> {
+                    toolCalls.add(
+                            OpenAIChatCompletionMessageToolCallSupport.to(chatCompletionMessageToolCall)
+                    );
                 });
-
-        response.toolCalls(toolCalls);
+        assistantMessage.toolCalls(toolCalls);
         return response;
     }
 
@@ -83,52 +67,40 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
         // Add Tool Definition
         if (functions != null && !functions.isEmpty()) {
             functions.forEach(function -> {
-                // Parameter Definition
-                FunctionParameters.Builder parameterBuilder = FunctionParameters.builder();
-                parameterBuilder.putAdditionalProperty("type", JsonValue.from("object"));
-                Map<String, Object> properties = new HashMap<>();
-                if (function.arguments() != null && !function.arguments().isEmpty()) {
-                    function.arguments().forEach((argument) -> {
-                        Map<String, Object> argumentProperties = new HashMap<>();
-                        // type definition: all string
-                        argumentProperties.put("type", "string");
-                        // description definition
-                        argumentProperties.put("description", argument.description());
-                        // enum values
-                        if (argument.enumValues() != null && !argument.enumValues().isEmpty()) {
-                            argumentProperties.put("enum", argument.enumValues());
-                        }
-
-                        properties.put(argument.name(), argumentProperties);
-                    });
-                }
-                parameterBuilder.putAdditionalProperty("properties", JsonValue.from(properties));
-                parameterBuilder.putAdditionalProperty("required", JsonValue.from(function.requiredArguments()));
-
-                // Function Definition
-                FunctionDefinition functionDefinition = FunctionDefinition.builder()
-                        .name(function.name())
-                        .description(function.description())
-                        .parameters(parameterBuilder.build())
-                        .build();
-
                 // Tool Definition
                 builder.addTool(
-                        ChatCompletionFunctionTool.builder().function(functionDefinition).build()
+                        ChatCompletionFunctionTool.builder()
+                                .function(OpenAIFunctionDefinitionSupport.from(function))
+                                .build()
                 );
             });
         }
 
         // Add Message
         messages.forEach(message -> {
-            if (message instanceof ChatLLMCompletionAssistantMessage) {
-                builder.addAssistantMessage(message.getContent());
+            if (message instanceof ChatLLMCompletionAssistantMessage assistantMessage) {
+                builder.addAssistantMessage(message.content());
+                ChatCompletionAssistantMessageParam.Builder messageParamBuilder = ChatCompletionAssistantMessageParam.builder();
+
+                // need support tool call info
+                if (assistantMessage.toolCalls() != null && !assistantMessage.toolCalls().isEmpty()) {
+                    messageParamBuilder.toolCalls(
+                            assistantMessage.toolCalls().stream()
+                                    .map(OpenAIChatCompletionMessageToolCallSupport::from)
+                                    .collect(Collectors.toList())
+                    );
+                }
+
+                builder.addMessage(messageParamBuilder
+                        .content(message.content())
+                        .build()
+                );
             } else if (message instanceof ChatLLMCompletionDeveloperMessage) {
-                builder.addDeveloperMessage(message.getContent());
+                builder.addDeveloperMessage(message.content());
             } else if (message instanceof ChatLLMCompletionSystemMessage) {
-                builder.addSystemMessage(message.getContent());
+                builder.addSystemMessage(message.content());
             } else if (message instanceof ChatLLMCompletionUserMessage) {
-                builder.addUserMessage(message.getContent());
+                builder.addUserMessage(message.content());
             }
 
         });
