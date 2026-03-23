@@ -19,4 +19,8 @@ public class ChatLLMCompletionResponse implements LLMCompletionResponse {
      * Response Chat Content
      */
     private ChatLLMCompletionAssistantMessage message;
+    /**
+     * tool calling flag
+     */
+    private boolean                           toolCalls;
 }

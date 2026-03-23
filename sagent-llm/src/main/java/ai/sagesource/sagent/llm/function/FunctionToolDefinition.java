@@ -1,5 +1,6 @@
 package ai.sagesource.sagent.llm.function;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -11,7 +12,7 @@ import java.util.List;
  * @author: sage.xue
  * @time: 2026/3/18
  */
-@Getter
+@Data
 @Accessors(fluent = true)
 public class FunctionToolDefinition {
 

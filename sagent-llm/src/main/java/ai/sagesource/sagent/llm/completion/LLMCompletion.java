@@ -26,4 +26,17 @@ public interface LLMCompletion {
                                        List<FunctionToolDefinition> functions,
                                        float temperature);
 
+    /**
+     * Streaming Thinking
+     *
+     * @param messages
+     * @param functions
+     * @param temperature
+     * @param streamingCallback
+     * @return
+     */
+    ChatLLMCompletionResponse thinking_streaming(List<ChatLLMCompletionMessage> messages,
+                                                 List<FunctionToolDefinition> functions,
+                                                 float temperature,
+                                                 LLMCompletionStreamingCallback<?> streamingCallback);
 }

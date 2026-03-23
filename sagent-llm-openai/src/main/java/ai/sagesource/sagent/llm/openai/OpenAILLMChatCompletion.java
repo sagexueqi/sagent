@@ -1,5 +1,6 @@
 package ai.sagesource.sagent.llm.openai;
 
+import ai.sagesource.sagent.llm.completion.LLMCompletionStreamingCallback;
 import ai.sagesource.sagent.llm.completion.chat.ChatLLMCompletion;
 import ai.sagesource.sagent.llm.completion.chat.models.messages.*;
 import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
@@ -39,7 +40,11 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
         ChatCompletionCreateParams params = this.chatCompletionCreateParams(messages, functions, temperature);
 
         List<ChatLLMCompletionResponseToolCall> toolCalls = new ArrayList<>();
-        openAIClient.chat().completions().create(params).choices().stream()
+        List<ChatCompletion.Choice>             choices   = openAIClient.chat().completions().create(params).choices();
+        // check has tool_call finish reason
+        boolean hasToolCallFinish = choices.stream().anyMatch(choice -> "tool_calls".equalsIgnoreCase(choice.finishReason().asString()));
+
+        choices.stream()
                 .map(ChatCompletion.Choice::message)
                 .flatMap(message -> {
                     // sync response has content
@@ -52,7 +57,16 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
                     );
                 });
         assistantMessage.toolCalls(toolCalls);
+        response.toolCalls(hasToolCallFinish);
         return response;
+    }
+
+    @Override
+    public ChatLLMCompletionResponse thinking_streaming(List<ChatLLMCompletionMessage> messages,
+                                                        List<FunctionToolDefinition> functions,
+                                                        float temperature,
+                                                        LLMCompletionStreamingCallback<?> streamingCallback) {
+        return null;
     }
 
     // init chat completion create params
