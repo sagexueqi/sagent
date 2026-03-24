@@ -1,4 +1,4 @@
-package ai.sagesource.llm.openai;
+package ai.sagesource.sagent.example.llm;
 
 import ai.sagesource.sagent.base.utils.DotEnvUtils;
 import ai.sagesource.sagent.llm.client.LLMClientConfig;
