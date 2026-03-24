@@ -9,10 +9,15 @@ import ai.sagesource.sagent.llm.function.FunctionToolDefinition;
 import ai.sagesource.sagent.llm.openai.support.OpenAIChatCompletionMessageToolCallSupport;
 import ai.sagesource.sagent.llm.openai.support.OpenAIFunctionDefinitionSupport;
 import com.openai.client.OpenAIClient;
+import com.openai.core.http.StreamResponse;
+import com.openai.helpers.ChatCompletionAccumulator;
 import com.openai.models.chat.completions.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Implement OpenAI Chat Completion
@@ -38,35 +43,46 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
         OpenAIClient openAIClient = llmClient.client();
         // build chat param
         ChatCompletionCreateParams params = this.chatCompletionCreateParams(messages, functions, temperature);
-
-        List<ChatLLMCompletionResponseToolCall> toolCalls = new ArrayList<>();
-        List<ChatCompletion.Choice>             choices   = openAIClient.chat().completions().create(params).choices();
-        // check has tool_call finish reason
-        boolean hasToolCallFinish = choices.stream().anyMatch(choice -> "tool_calls".equalsIgnoreCase(choice.finishReason().asString()));
-
-        choices.stream()
-                .map(ChatCompletion.Choice::message)
-                .flatMap(message -> {
-                    // sync response has content
-                    message.content().ifPresent(assistantMessage::content);
-                    // return tool call stream
-                    return message.toolCalls().stream().flatMap(Collection::stream);
-                }).forEach(chatCompletionMessageToolCall -> {
-                    toolCalls.add(
-                            OpenAIChatCompletionMessageToolCallSupport.to(chatCompletionMessageToolCall)
-                    );
-                });
-        assistantMessage.toolCalls(toolCalls);
-        response.toolCalls(hasToolCallFinish);
-        return response;
+        // call open-ai
+        ChatCompletion chatCompletion = openAIClient.chat().completions().create(params);
+        // build response
+        return toolCallsResponseBuild(chatCompletion);
     }
 
     @Override
-    public ChatLLMCompletionResponse thinking_streaming(List<ChatLLMCompletionMessage> messages,
-                                                        List<FunctionToolDefinition> functions,
-                                                        float temperature,
-                                                        LLMCompletionStreamingCallback<?> streamingCallback) {
-        return null;
+    public void thinking_streaming(List<ChatLLMCompletionMessage> messages,
+                                   List<FunctionToolDefinition> functions,
+                                   float temperature,
+                                   LLMCompletionStreamingCallback<ChatLLMCompletionResponse> streamingCallback) {
+        // get openai client
+        OpenAIClient openAIClient = llmClient.client();
+        // build chat param
+        ChatCompletionCreateParams params = this.chatCompletionCreateParams(messages, functions, temperature);
+
+        // create open-ai accumulator
+        ChatCompletionAccumulator accumulator = ChatCompletionAccumulator.create();
+
+        // streaming request
+        try (StreamResponse<ChatCompletionChunk> streamResponse =
+                     openAIClient.chat().completions().createStreaming(params)) {
+            Stream<ChatCompletionChunk> stream = streamResponse.stream();
+            stream
+                    // accumulate chunk
+                    .peek(accumulator::accumulate)
+                    .flatMap(completion -> completion.choices().stream())
+                    .flatMap(choice -> choice.delta().content().stream())
+                    .forEach(content -> {
+                        ChatLLMCompletionResponse         response         = new ChatLLMCompletionResponse();
+                        ChatLLMCompletionAssistantMessage assistantMessage = new ChatLLMCompletionAssistantMessage();
+                        response.message(assistantMessage);
+                        assistantMessage.content(content);
+                        streamingCallback.onToken(response);
+                    });
+        }
+
+        // streaming ending
+        ChatCompletion chatCompletion = accumulator.chatCompletion();
+        streamingCallback.onCompletion(toolCallsResponseBuild(chatCompletion));
     }
 
     // init chat completion create params
@@ -119,6 +135,31 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
 
         });
         return builder.build();
+    }
+
+    // build tool calls response
+    private ChatLLMCompletionResponse toolCallsResponseBuild(ChatCompletion chatCompletion) {
+        ChatLLMCompletionResponse         response         = new ChatLLMCompletionResponse();
+        ChatLLMCompletionAssistantMessage assistantMessage = new ChatLLMCompletionAssistantMessage();
+        response.message(assistantMessage);
+        List<ChatLLMCompletionResponseToolCall> toolCalls = new ArrayList<>();
+        boolean hasToolCallFinish = chatCompletion.choices().stream()
+                .anyMatch(choice -> "tool_calls".equalsIgnoreCase(choice.finishReason().asString()));
+
+        chatCompletion.choices().stream()
+                .map(ChatCompletion.Choice::message)
+                .flatMap(message -> {
+                    message.content().ifPresent(assistantMessage::content);
+                    return message.toolCalls().stream().flatMap(Collection::stream);
+                }).forEach(chatCompletionMessageToolCall -> {
+                    toolCalls.add(
+                            OpenAIChatCompletionMessageToolCallSupport.to(chatCompletionMessageToolCall)
+                    );
+                });
+        assistantMessage.toolCalls(toolCalls);
+        response.toolCalls(hasToolCallFinish);
+
+        return response;
     }
 
 }

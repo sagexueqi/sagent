@@ -12,7 +12,7 @@ import java.util.List;
  * @author: sage.xue
  * @time: 2026/3/15
  */
-public interface LLMCompletion {
+public interface LLMCompletion<R extends LLMCompletionResponse> {
 
     /**
      * Sync Thinking
@@ -22,9 +22,9 @@ public interface LLMCompletion {
      * @param temperature
      * @return
      */
-    ChatLLMCompletionResponse thinking(List<ChatLLMCompletionMessage> messages,
-                                       List<FunctionToolDefinition> functions,
-                                       float temperature);
+    R thinking(List<ChatLLMCompletionMessage> messages,
+               List<FunctionToolDefinition> functions,
+               float temperature);
 
     /**
      * Streaming Thinking
@@ -35,8 +35,8 @@ public interface LLMCompletion {
      * @param streamingCallback
      * @return
      */
-    ChatLLMCompletionResponse thinking_streaming(List<ChatLLMCompletionMessage> messages,
-                                                 List<FunctionToolDefinition> functions,
-                                                 float temperature,
-                                                 LLMCompletionStreamingCallback<?> streamingCallback);
+    void thinking_streaming(List<ChatLLMCompletionMessage> messages,
+                         List<FunctionToolDefinition> functions,
+                         float temperature,
+                         LLMCompletionStreamingCallback<R> streamingCallback);
 }
