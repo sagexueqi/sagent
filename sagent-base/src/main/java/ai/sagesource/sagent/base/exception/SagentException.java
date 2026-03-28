@@ -19,4 +19,7 @@ public class SagentException extends RuntimeException {
     public SagentException(Throwable cause) {
         super(cause);
     }
+
+    public SagentException() {
+    }
 }

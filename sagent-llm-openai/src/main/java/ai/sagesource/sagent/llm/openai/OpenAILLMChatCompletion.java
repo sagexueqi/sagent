@@ -1,19 +1,26 @@
 package ai.sagesource.sagent.llm.openai;
 
+import ai.sagesource.sagent.base.exception.SagentLLMException;
 import ai.sagesource.sagent.llm.completion.LLMCompletionStreamingCallback;
 import ai.sagesource.sagent.llm.completion.LLMCompletionStreamingHandle;
 import ai.sagesource.sagent.llm.completion.chat.ChatLLMCompletion;
 import ai.sagesource.sagent.llm.completion.chat.models.messages.*;
 import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
 import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponseToolCall;
+import ai.sagesource.sagent.llm.exceptions.SagentLLMConnectionException;
+import ai.sagesource.sagent.llm.exceptions.SagentLLMServiceException;
 import ai.sagesource.sagent.llm.function.FunctionToolDefinition;
 import ai.sagesource.sagent.llm.openai.support.OpenAIChatCompletionMessageToolCallSupport;
 import ai.sagesource.sagent.llm.openai.support.OpenAIFunctionDefinitionSupport;
 import com.openai.client.OpenAIClient;
 import com.openai.core.http.StreamResponse;
+import com.openai.errors.OpenAIServiceException;
+import com.openai.errors.RateLimitException;
+import com.openai.errors.UnauthorizedException;
 import com.openai.helpers.ChatCompletionAccumulator;
 import com.openai.models.chat.completions.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -37,18 +44,22 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
     public ChatLLMCompletionResponse thinking(List<ChatLLMCompletionMessage> messages,
                                               List<FunctionToolDefinition> functions,
                                               float temperature) {
-        ChatLLMCompletionResponse         response         = new ChatLLMCompletionResponse();
-        ChatLLMCompletionAssistantMessage assistantMessage = new ChatLLMCompletionAssistantMessage();
-        response.message(assistantMessage);
+        try {
+            ChatLLMCompletionResponse         response         = new ChatLLMCompletionResponse();
+            ChatLLMCompletionAssistantMessage assistantMessage = new ChatLLMCompletionAssistantMessage();
+            response.message(assistantMessage);
 
-        // 获取OPENAI CLIENT
-        OpenAIClient openAIClient = llmClient.client();
-        // 构建参数
-        ChatCompletionCreateParams params = this.chatCompletionCreateParams(messages, functions, temperature);
-        // 调用LLM
-        ChatCompletion chatCompletion = openAIClient.chat().completions().create(params);
-        // 构建响应
-        return toolCallsResponseBuild(chatCompletion);
+            // 获取OPENAI CLIENT
+            OpenAIClient openAIClient = llmClient.client();
+            // 构建参数
+            ChatCompletionCreateParams params = this.chatCompletionCreateParams(messages, functions, temperature);
+            // 调用LLM
+            ChatCompletion chatCompletion = openAIClient.chat().completions().create(params);
+            // 构建响应
+            return toolCallsResponseBuild(chatCompletion);
+        } catch (Exception e) {
+            throw translateException(e);
+        }
     }
 
     @Override
@@ -71,6 +82,32 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
             coreThinkingStreaming(messages, functions, temperature, streamingCallback, handle);
         });
         return handle;
+    }
+
+    @Override
+    protected SagentLLMException translateException(Exception e) {
+        // OpenAI SDK 的异常体系 -> 框架异常
+        if (e instanceof RateLimitException oae) {
+            return new SagentLLMServiceException(
+                    429, "rate_limit", "OpenAI rate limit exceeded", oae);
+        }
+        if (e instanceof UnauthorizedException oae) {
+            return new SagentLLMServiceException(
+                    401, "auth_error", "OpenAI authentication failed", oae);
+        }
+        // https://github.com/openai/openai-java/tree/main?tab=readme-ov-file#error-handling
+        if (e instanceof OpenAIServiceException oae) {
+            return new SagentLLMServiceException(
+                    oae.statusCode(), oae.code().orElse("unknown"), oae.getMessage(), oae);
+        }
+        if (e instanceof IOException) {
+            return new SagentLLMConnectionException(
+                    "OpenAI connection error: " + e.getMessage(), e);
+        }
+        if (e instanceof SagentLLMException oae) {
+            return oae;
+        }
+        return new SagentLLMException("unexpected exception", e);
     }
 
     /**
@@ -127,13 +164,9 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
                 ChatCompletion chatCompletion = accumulator.chatCompletion();
                 streamingCallback.onCompletion(toolCallsResponseBuild(chatCompletion));
             }
-        } catch (Throwable throwable) {
-            if (handle.isCancelled()) {
-                // 取消导致的异常（流被关闭后读取会抛异常），正常处理
-                streamingCallback.onCancelled();
-            } else {
-                streamingCallback.onError(throwable);
-            }
+        } catch (Exception e) {
+            // 统一异常处理
+            this.handleStreamingException(e, handle, streamingCallback);
         } finally {
             handle.markComplete();
         }
@@ -192,6 +225,7 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
         return builder.build();
     }
 
+    // 构建tool-calls响应
     private ChatLLMCompletionResponse toolCallsResponseBuild(ChatCompletion chatCompletion) {
         ChatLLMCompletionResponse         response         = new ChatLLMCompletionResponse();
         ChatLLMCompletionAssistantMessage assistantMessage = new ChatLLMCompletionAssistantMessage();
