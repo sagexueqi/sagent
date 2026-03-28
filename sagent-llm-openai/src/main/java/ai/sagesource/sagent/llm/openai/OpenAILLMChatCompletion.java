@@ -1,6 +1,7 @@
 package ai.sagesource.sagent.llm.openai;
 
 import ai.sagesource.sagent.llm.completion.LLMCompletionStreamingCallback;
+import ai.sagesource.sagent.llm.completion.LLMCompletionStreamingHandle;
 import ai.sagesource.sagent.llm.completion.chat.ChatLLMCompletion;
 import ai.sagesource.sagent.llm.completion.chat.models.messages.*;
 import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
@@ -16,11 +17,12 @@ import com.openai.models.chat.completions.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Implement OpenAI Chat Completion
+ * 实现基于OPENAI SDK的Chat Completion
  *
  * @author: sage.xue
  * @time: 2026/3/16
@@ -39,53 +41,106 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
         ChatLLMCompletionAssistantMessage assistantMessage = new ChatLLMCompletionAssistantMessage();
         response.message(assistantMessage);
 
-        // get openai client
+        // 获取OPENAI CLIENT
         OpenAIClient openAIClient = llmClient.client();
-        // build chat param
+        // 构建参数
         ChatCompletionCreateParams params = this.chatCompletionCreateParams(messages, functions, temperature);
-        // call open-ai
+        // 调用LLM
         ChatCompletion chatCompletion = openAIClient.chat().completions().create(params);
-        // build response
+        // 构建响应
         return toolCallsResponseBuild(chatCompletion);
     }
 
     @Override
-    public void thinking_streaming(List<ChatLLMCompletionMessage> messages,
-                                   List<FunctionToolDefinition> functions,
-                                   float temperature,
-                                   LLMCompletionStreamingCallback<ChatLLMCompletionResponse> streamingCallback) {
-        // get openai client
-        OpenAIClient openAIClient = llmClient.client();
-        // build chat param
-        ChatCompletionCreateParams params = this.chatCompletionCreateParams(messages, functions, temperature);
+    public LLMCompletionStreamingHandle thinking_streaming(List<ChatLLMCompletionMessage> messages,
+                                                           List<FunctionToolDefinition> functions,
+                                                           float temperature,
+                                                           LLMCompletionStreamingCallback<ChatLLMCompletionResponse> streamingCallback) {
+        return coreThinkingStreaming(messages, functions, temperature, streamingCallback, new LLMCompletionStreamingHandle());
+    }
 
-        // create open-ai accumulator
+    @Override
+    public LLMCompletionStreamingHandle thinking_stream_async(List<ChatLLMCompletionMessage> messages,
+                                                              List<FunctionToolDefinition> functions,
+                                                              float temperature,
+                                                              LLMCompletionStreamingCallback<ChatLLMCompletionResponse> streamingCallback,
+                                                              Executor executor) {
+        LLMCompletionStreamingHandle handle = new LLMCompletionStreamingHandle();
+        executor.execute(() -> {
+            // 复用同步核心实现，handler在压入线程池前传入
+            coreThinkingStreaming(messages, functions, temperature, streamingCallback, handle);
+        });
+        return handle;
+    }
+
+    /**
+     * 流式输出核心逻辑
+     *
+     * @param messages
+     * @param functions
+     * @param temperature
+     * @param streamingCallback
+     * @return
+     */
+    private LLMCompletionStreamingHandle coreThinkingStreaming(List<ChatLLMCompletionMessage> messages,
+                                                               List<FunctionToolDefinition> functions,
+                                                               float temperature,
+                                                               LLMCompletionStreamingCallback<ChatLLMCompletionResponse> streamingCallback,
+                                                               LLMCompletionStreamingHandle handle) {
+        // 获取OPENAI CLIENT
+        OpenAIClient openAIClient = llmClient.client();
+        // 构建参数
+        ChatCompletionCreateParams params = this.chatCompletionCreateParams(messages, functions, temperature);
+        // 创建OPENAI累计器，处理流水响应的tool-calls
         ChatCompletionAccumulator accumulator = ChatCompletionAccumulator.create();
 
-        // streaming request
+        // 流式请求
         try (StreamResponse<ChatCompletionChunk> streamResponse =
                      openAIClient.chat().completions().createStreaming(params)) {
+            // 把 OPENAI 的流资源通过 lambda 注入
+            handle.bindCloser(streamResponse::close);
+
             Stream<ChatCompletionChunk> stream = streamResponse.stream();
             stream
-                    // accumulate chunk
+                    // 累加chunk
                     .peek(accumulator::accumulate)
                     .flatMap(completion -> completion.choices().stream())
                     .flatMap(choice -> choice.delta().content().stream())
                     .forEach(content -> {
+                        if (handle.isCancelled()) return;
+
                         ChatLLMCompletionResponse         response         = new ChatLLMCompletionResponse();
                         ChatLLMCompletionAssistantMessage assistantMessage = new ChatLLMCompletionAssistantMessage();
                         response.message(assistantMessage);
                         assistantMessage.content(content);
-                        streamingCallback.onToken(response);
-                    });
-        }
 
-        // streaming ending
-        ChatCompletion chatCompletion = accumulator.chatCompletion();
-        streamingCallback.onCompletion(toolCallsResponseBuild(chatCompletion));
+                        // callback 返回 false 也触发取消
+                        if (!streamingCallback.onToken(response)) {
+                            handle.cancel();
+                        }
+                    });
+
+            // 区分完成原因
+            if (handle.isCancelled()) {
+                streamingCallback.onCancelled();
+            } else {
+                ChatCompletion chatCompletion = accumulator.chatCompletion();
+                streamingCallback.onCompletion(toolCallsResponseBuild(chatCompletion));
+            }
+        } catch (Throwable throwable) {
+            if (handle.isCancelled()) {
+                // 取消导致的异常（流被关闭后读取会抛异常），正常处理
+                streamingCallback.onCancelled();
+            } else {
+                streamingCallback.onError(throwable);
+            }
+        } finally {
+            handle.markComplete();
+        }
+        return handle;
     }
 
-    // init chat completion create params
+    // 初始化chat completion create params
     private ChatCompletionCreateParams chatCompletionCreateParams(List<ChatLLMCompletionMessage> messages,
                                                                   List<FunctionToolDefinition> functions,
                                                                   float temperature) {
@@ -94,10 +149,10 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
                 .temperature(temperature)
                 .maxCompletionTokens(this.llmClient.maxToken());
 
-        // Add Tool Definition
+        // 添加ToolDefinition
         if (functions != null && !functions.isEmpty()) {
             functions.forEach(function -> {
-                // Tool Definition
+                // 每一个ToolDefinition
                 builder.addTool(
                         ChatCompletionFunctionTool.builder()
                                 .function(OpenAIFunctionDefinitionSupport.from(function))
@@ -106,13 +161,13 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
             });
         }
 
-        // Add Message
+        // 添加Message
         messages.forEach(message -> {
             if (message instanceof ChatLLMCompletionAssistantMessage assistantMessage) {
                 builder.addAssistantMessage(message.content());
                 ChatCompletionAssistantMessageParam.Builder messageParamBuilder = ChatCompletionAssistantMessageParam.builder();
 
-                // need support tool call info
+                // 支持tool-calls
                 if (assistantMessage.toolCalls() != null && !assistantMessage.toolCalls().isEmpty()) {
                     messageParamBuilder.toolCalls(
                             assistantMessage.toolCalls().stream()
@@ -137,7 +192,6 @@ public class OpenAILLMChatCompletion extends ChatLLMCompletion<OpenAILLMClient> 
         return builder.build();
     }
 
-    // build tool calls response
     private ChatLLMCompletionResponse toolCallsResponseBuild(ChatCompletion chatCompletion) {
         ChatLLMCompletionResponse         response         = new ChatLLMCompletionResponse();
         ChatLLMCompletionAssistantMessage assistantMessage = new ChatLLMCompletionAssistantMessage();

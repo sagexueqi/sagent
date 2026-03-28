@@ -1,10 +1,10 @@
 package ai.sagesource.sagent.llm.completion;
 
 import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionMessage;
-import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
 import ai.sagesource.sagent.llm.function.FunctionToolDefinition;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * Completion Interface
@@ -15,7 +15,7 @@ import java.util.List;
 public interface LLMCompletion<R extends LLMCompletionResponse> {
 
     /**
-     * Sync Thinking
+     * 同步Thinking
      *
      * @param messages
      * @param functions
@@ -35,8 +35,24 @@ public interface LLMCompletion<R extends LLMCompletionResponse> {
      * @param streamingCallback
      * @return
      */
-    void thinking_streaming(List<ChatLLMCompletionMessage> messages,
-                         List<FunctionToolDefinition> functions,
-                         float temperature,
-                         LLMCompletionStreamingCallback<R> streamingCallback);
+    LLMCompletionStreamingHandle thinking_streaming(List<ChatLLMCompletionMessage> messages,
+                                                    List<FunctionToolDefinition> functions,
+                                                    float temperature,
+                                                    LLMCompletionStreamingCallback<R> streamingCallback);
+
+    /**
+     * 异步Streaming Thinking
+     *
+     * @param messages
+     * @param functions
+     * @param temperature
+     * @param streamingCallback
+     * @param executor
+     * @return
+     */
+    LLMCompletionStreamingHandle thinking_stream_async(List<ChatLLMCompletionMessage> messages,
+                                                       List<FunctionToolDefinition> functions,
+                                                       float temperature,
+                                                       LLMCompletionStreamingCallback<R> streamingCallback,
+                                                       Executor executor);
 }

@@ -53,7 +53,7 @@ public class OpenAILLMChatCompletionStreamingToolCallTest {
         functionToolDefinition.arguments(List.of(argumentsDefinition1, argumentsDefinition2));
         functionToolDefinitions.add(functionToolDefinition);
 
-        FunctionToolDefinition       functionToolDefinition2  = new FunctionToolDefinition();
+        FunctionToolDefinition functionToolDefinition2 = new FunctionToolDefinition();
         functionToolDefinition2.name("Call_Calculate_Api");
         functionToolDefinition2.description("调用计算API，实现数学计算");
         ArgumentsDefinition argumentsDefinition21 = new ArgumentsDefinition();
@@ -74,19 +74,15 @@ public class OpenAILLMChatCompletionStreamingToolCallTest {
                 0f,
                 new LLMCompletionStreamingCallback<ChatLLMCompletionResponse>() {
                     @Override
-                    public void onToken(ChatLLMCompletionResponse llmCompletionResponse) {
+                    public boolean onToken(ChatLLMCompletionResponse llmCompletionResponse) {
                         System.out.print(llmCompletionResponse.message().content());
+                        return true;
                     }
 
                     @Override
                     public void onCompletion(ChatLLMCompletionResponse llmCompletionResponse) {
                         System.out.println("\n-------- onCompletion --------");
                         System.out.println(llmCompletionResponse.message().content());
-                    }
-
-                    @Override
-                    public void onError(Exception e) {
-
                     }
                 }
         );

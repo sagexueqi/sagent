@@ -1,5 +1,6 @@
 package ai.sagesource.sagent.llm.openai;
 
+import ai.sagesource.sagent.base.exception.SagentLLMException;
 import ai.sagesource.sagent.llm.client.LLMClient;
 import ai.sagesource.sagent.llm.client.LLMClientConfig;
 import com.openai.client.OpenAIClient;
@@ -23,6 +24,9 @@ public class OpenAILLMClient implements LLMClient<OpenAIClient> {
     private final LLMClientConfig clientConfig;
 
     public OpenAILLMClient(LLMClientConfig clientConfig) {
+        if (clientConfig == null) {
+            throw new SagentLLMException("clientConfig is null");
+        }
         this.clientConfig = clientConfig;
     }
 
