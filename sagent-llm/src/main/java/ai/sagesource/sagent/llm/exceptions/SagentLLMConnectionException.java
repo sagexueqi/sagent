@@ -1,7 +1,5 @@
 package ai.sagesource.sagent.llm.exceptions;
 
-import ai.sagesource.sagent.base.exception.SagentLLMException;
-
 /**
  * 网络/连接层异常
  *

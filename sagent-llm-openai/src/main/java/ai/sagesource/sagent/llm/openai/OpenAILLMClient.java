@@ -1,6 +1,6 @@
 package ai.sagesource.sagent.llm.openai;
 
-import ai.sagesource.sagent.base.exception.SagentLLMException;
+import ai.sagesource.sagent.llm.exceptions.SagentLLMException;
 import ai.sagesource.sagent.llm.client.LLMClient;
 import ai.sagesource.sagent.llm.client.LLMClientConfig;
 import com.openai.client.OpenAIClient;

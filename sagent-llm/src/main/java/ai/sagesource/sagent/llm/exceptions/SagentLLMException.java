@@ -1,4 +1,6 @@
-package ai.sagesource.sagent.base.exception;
+package ai.sagesource.sagent.llm.exceptions;
+
+import ai.sagesource.sagent.base.exception.SagentException;
 
 /**
  * Sagent LLM Exception

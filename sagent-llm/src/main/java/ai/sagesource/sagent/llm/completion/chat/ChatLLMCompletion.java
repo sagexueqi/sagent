@@ -1,16 +1,11 @@
 package ai.sagesource.sagent.llm.completion.chat;
 
-import ai.sagesource.sagent.base.exception.SagentLLMException;
+import ai.sagesource.sagent.llm.exceptions.SagentLLMException;
 import ai.sagesource.sagent.llm.client.LLMClient;
 import ai.sagesource.sagent.llm.completion.LLMCompletion;
-import ai.sagesource.sagent.llm.completion.LLMCompletionResponse;
 import ai.sagesource.sagent.llm.completion.LLMCompletionStreamingCallback;
 import ai.sagesource.sagent.llm.completion.LLMCompletionStreamingHandle;
-import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionMessage;
 import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
-import ai.sagesource.sagent.llm.function.FunctionToolDefinition;
-
-import java.util.List;
 
 /**
  * Chat Completion Abstract Class

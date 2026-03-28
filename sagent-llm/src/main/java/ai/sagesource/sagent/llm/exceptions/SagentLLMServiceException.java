@@ -1,6 +1,5 @@
 package ai.sagesource.sagent.llm.exceptions;
 
-import ai.sagesource.sagent.base.exception.SagentLLMException;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
