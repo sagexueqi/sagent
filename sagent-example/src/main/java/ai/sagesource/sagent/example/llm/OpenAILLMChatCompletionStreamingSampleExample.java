@@ -2,6 +2,7 @@ package ai.sagesource.sagent.example.llm;
 
 import ai.sagesource.sagent.base.utils.DotEnvUtils;
 import ai.sagesource.sagent.llm.client.LLMClientConfig;
+import ai.sagesource.sagent.llm.completion.LLMCompletionStreamingCallback;
 import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionSystemMessage;
 import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionUserMessage;
 import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
@@ -16,7 +17,7 @@ import java.util.List;
  * @author: sage.xue
  * @time: 2026/3/22
  */
-public class OpenAILLMChatCompletionSampleTest {
+public class OpenAILLMChatCompletionStreamingSampleExample {
 
 
     public static void main(String[] args) {
@@ -38,11 +39,23 @@ public class OpenAILLMChatCompletionSampleTest {
         systemMessage.content("Your name is 'Sagent'");
         ChatLLMCompletionUserMessage userMessage = new ChatLLMCompletionUserMessage();
         userMessage.content("who are you?");
-        ChatLLMCompletionResponse response = openAILLMChatCompletion.thinking(
+        openAILLMChatCompletion.thinking_streaming(
                 List.of(systemMessage, userMessage),
                 null,
-                0L
+                0L,
+                new LLMCompletionStreamingCallback<>() {
+                    @Override
+                    public boolean onToken(ChatLLMCompletionResponse llmCompletionResponse) {
+                        System.out.print(llmCompletionResponse.message().content());
+                        return true;
+                    }
+
+                    @Override
+                    public void onCompletion(ChatLLMCompletionResponse llmCompletionResponse) {
+                        System.out.println("\n-------- onCompletion --------");
+                        System.out.println(llmCompletionResponse.message().content());
+                    }
+                }
         );
-        System.out.println(response.message().content());
     }
 }

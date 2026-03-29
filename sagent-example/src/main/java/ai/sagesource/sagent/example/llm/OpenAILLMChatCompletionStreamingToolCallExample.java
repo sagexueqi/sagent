@@ -20,7 +20,7 @@ import java.util.List;
  * @author: sage.xue
  * @time: 2026/3/26
  */
-public class OpenAILLMChatCompletionStreamingToolCallTest {
+public class OpenAILLMChatCompletionStreamingToolCallExample {
 
     public static void main(String[] args) {
         Dotenv dotenv = DotEnvUtils.loadEnv();
@@ -37,30 +37,40 @@ public class OpenAILLMChatCompletionStreamingToolCallTest {
 
         OpenAILLMChatCompletion openAILLMChatCompletion = new OpenAILLMChatCompletion(openAILLMClient);
 
+        // 工具列表
         List<FunctionToolDefinition> functionToolDefinitions = new ArrayList<>();
-        FunctionToolDefinition       functionToolDefinition  = new FunctionToolDefinition();
-        functionToolDefinition.name("Call_Search_Api");
-        functionToolDefinition.description("Call Search API,Support Google/Bing");
-        ArgumentsDefinition argumentsDefinition1 = new ArgumentsDefinition();
-        argumentsDefinition1.name("qry");
-        argumentsDefinition1.description("query content");
-        argumentsDefinition1.type("string");
-        ArgumentsDefinition argumentsDefinition2 = new ArgumentsDefinition();
-        argumentsDefinition2.name("engine");
-        argumentsDefinition2.description("Search Engine");
-        argumentsDefinition2.type("string");
-        argumentsDefinition2.enumValues(List.of("Google", "Bing"));
-        functionToolDefinition.arguments(List.of(argumentsDefinition1, argumentsDefinition2));
+
+        // 参数列表
+        ArgumentsDefinition argumentsDefinition1 = ArgumentsDefinition.builder()
+                .name("qry")
+                .description("query content")
+                .type("string")
+                .build();
+        ArgumentsDefinition argumentsDefinition2 = ArgumentsDefinition.builder()
+                .name("engine")
+                .description("Search Engine")
+                .type("string")
+                .enumValues(List.of("Google", "Bing"))
+                .build();
+        FunctionToolDefinition functionToolDefinition = FunctionToolDefinition.builder()
+                .name("Call_Search_Api")
+                .description("Call Search API")
+                .arguments(List.of(argumentsDefinition1, argumentsDefinition2))
+                .build();
         functionToolDefinitions.add(functionToolDefinition);
 
-        FunctionToolDefinition functionToolDefinition2 = new FunctionToolDefinition();
-        functionToolDefinition2.name("Call_Calculate_Api");
-        functionToolDefinition2.description("调用计算API，实现数学计算");
-        ArgumentsDefinition argumentsDefinition21 = new ArgumentsDefinition();
-        argumentsDefinition21.name("expression");
-        argumentsDefinition21.description("数学表达式");
-        argumentsDefinition21.type("string");
-        functionToolDefinition2.arguments(List.of(argumentsDefinition21));
+
+        ArgumentsDefinition argumentsDefinition21 = ArgumentsDefinition.builder()
+                .name("expression")
+                .description("数学表达式")
+                .type("string")
+                .build();
+
+        FunctionToolDefinition functionToolDefinition2 = FunctionToolDefinition.builder()
+                .name("Call_Calculate_Api")
+                .description("调用计算API，实现数学计算")
+                .arguments(List.of(argumentsDefinition21))
+                .build();
         functionToolDefinitions.add(functionToolDefinition2);
 
         ChatLLMCompletionSystemMessage systemMessage = new ChatLLMCompletionSystemMessage();

@@ -20,5 +20,9 @@
             <groupId>ai.sagesource.sagent</groupId>
             <artifactId>sagent-llm-openai</artifactId>
         </dependency>
+        <dependency>
+            <groupId>ai.sagesource.sagent</groupId>
+            <artifactId>sagent-tool</artifactId>
+        </dependency>
     </dependencies>
 </project>

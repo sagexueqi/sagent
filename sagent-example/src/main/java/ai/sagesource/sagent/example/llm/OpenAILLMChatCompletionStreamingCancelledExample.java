@@ -3,6 +3,7 @@ package ai.sagesource.sagent.example.llm;
 import ai.sagesource.sagent.base.utils.DotEnvUtils;
 import ai.sagesource.sagent.llm.client.LLMClientConfig;
 import ai.sagesource.sagent.llm.completion.LLMCompletionStreamingCallback;
+import ai.sagesource.sagent.llm.completion.LLMCompletionStreamingHandle;
 import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionSystemMessage;
 import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionUserMessage;
 import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
@@ -17,10 +18,10 @@ import java.util.List;
  * @author: sage.xue
  * @time: 2026/3/22
  */
-public class OpenAILLMChatCompletionStreamingSampleTest {
+public class OpenAILLMChatCompletionStreamingCancelledExample {
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception{
         Dotenv dotenv = DotEnvUtils.loadEnv();
 
         LLMClientConfig llmClientConfig = new LLMClientConfig();
@@ -39,13 +40,19 @@ public class OpenAILLMChatCompletionStreamingSampleTest {
         systemMessage.content("Your name is 'Sagent'");
         ChatLLMCompletionUserMessage userMessage = new ChatLLMCompletionUserMessage();
         userMessage.content("who are you?");
-        openAILLMChatCompletion.thinking_streaming(
+        LLMCompletionStreamingHandle handle = openAILLMChatCompletion.thinking_streaming(
                 List.of(systemMessage, userMessage),
                 null,
                 0L,
                 new LLMCompletionStreamingCallback<>() {
+                    private int tokenCount = 0;
+
                     @Override
                     public boolean onToken(ChatLLMCompletionResponse llmCompletionResponse) {
+                        // 方式1：获取token后，如果返回false，触发流中断
+                        tokenCount++;
+                        if (tokenCount > 10000) return false;
+
                         System.out.print(llmCompletionResponse.message().content());
                         return true;
                     }
@@ -57,5 +64,8 @@ public class OpenAILLMChatCompletionStreamingSampleTest {
                     }
                 }
         );
+
+        // 方式2：主动触发流中断
+        handle.cancel();
     }
 }

@@ -50,6 +50,11 @@
                 <artifactId>sagent-llm-openai</artifactId>
                 <version>${revision}</version>
             </dependency>
+            <dependency>
+                <groupId>ai.sagesource.sagent</groupId>
+                <artifactId>sagent-tool</artifactId>
+                <version>${revision}</version>
+            </dependency>
 
             <!-- Spring Boot Dependencies -->
             <dependency>

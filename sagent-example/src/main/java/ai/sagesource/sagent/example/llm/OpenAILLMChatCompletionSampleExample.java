@@ -5,13 +5,10 @@ import ai.sagesource.sagent.llm.client.LLMClientConfig;
 import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionSystemMessage;
 import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionUserMessage;
 import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
-import ai.sagesource.sagent.llm.function.ArgumentsDefinition;
-import ai.sagesource.sagent.llm.function.FunctionToolDefinition;
 import ai.sagesource.sagent.llm.openai.OpenAILLMChatCompletion;
 import ai.sagesource.sagent.llm.openai.OpenAILLMClient;
 import io.github.cdimascio.dotenv.Dotenv;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -19,7 +16,8 @@ import java.util.List;
  * @author: sage.xue
  * @time: 2026/3/22
  */
-public class OpenAILLMChatCompletionToolCallTest {
+public class OpenAILLMChatCompletionSampleExample {
+
 
     public static void main(String[] args) {
         Dotenv dotenv = DotEnvUtils.loadEnv();
@@ -36,33 +34,15 @@ public class OpenAILLMChatCompletionToolCallTest {
 
         OpenAILLMChatCompletion openAILLMChatCompletion = new OpenAILLMChatCompletion(openAILLMClient);
 
-        List<FunctionToolDefinition> functionToolDefinitions = new ArrayList<>();
-        FunctionToolDefinition  functionToolDefinition = new FunctionToolDefinition();
-        functionToolDefinition.name("Call_Search_Api");
-        functionToolDefinition.description("Call Search API,Support Google/Bing");
-        ArgumentsDefinition argumentsDefinition1 = new ArgumentsDefinition();
-        argumentsDefinition1.name("qry");
-        argumentsDefinition1.description("query content");
-        argumentsDefinition1.type("string");
-        ArgumentsDefinition argumentsDefinition2 = new ArgumentsDefinition();
-        argumentsDefinition2.name("engine");
-        argumentsDefinition2.description("Search Engine");
-        argumentsDefinition2.type("string");
-        argumentsDefinition2.enumValues(List.of("Google", "Bing"));
-        functionToolDefinition.arguments(List.of(argumentsDefinition1, argumentsDefinition2));
-        functionToolDefinitions.add(functionToolDefinition);
-
         ChatLLMCompletionSystemMessage systemMessage = new ChatLLMCompletionSystemMessage();
-        systemMessage.content("你的名字叫 'Sagent', 不能透露任何关于你的技术细节. 当你需要调用外部工具获取信息时，必须先用自然语言告知用户你的意图，例如“我需要搜集一些信息”，然后再执行相应的函数调用。");
+        systemMessage.content("Your name is 'Sagent'");
         ChatLLMCompletionUserMessage userMessage = new ChatLLMCompletionUserMessage();
-        userMessage.content("请介绍2026年最新的Apple MacBook信息");
-
+        userMessage.content("who are you?");
         ChatLLMCompletionResponse response = openAILLMChatCompletion.thinking(
                 List.of(systemMessage, userMessage),
-                functionToolDefinitions,
+                null,
                 0L
         );
         System.out.println(response.message().content());
     }
-
 }
