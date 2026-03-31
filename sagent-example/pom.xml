@@ -24,5 +24,9 @@
             <groupId>ai.sagesource.sagent</groupId>
             <artifactId>sagent-tool</artifactId>
         </dependency>
+        <dependency>
+            <groupId>ai.sagesource.sagent</groupId>
+            <artifactId>sagent-agent</artifactId>
+        </dependency>
     </dependencies>
 </project>

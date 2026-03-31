@@ -8,11 +8,36 @@
         <artifactId>sagent</artifactId>
         <version>${revision}</version>
     </parent>
+
     <artifactId>sagent-agent</artifactId>
-    <packaging>jar</packaging>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
     </properties>
 
+    <dependencies>
+        <!-- sagent base -->
+        <dependency>
+            <groupId>ai.sagesource.sagent</groupId>
+            <artifactId>sagent-base</artifactId>
+        </dependency>
+
+        <!-- Apache Commons Text - 用于高性能字符串替换 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
+        <!-- SLF4J -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
 </project>
