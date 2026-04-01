@@ -1,11 +1,7 @@
-package ai.sagesource.sagent.agent;
+package ai.sagesource.sagent.agent.prompt;
 
 import ai.sagesource.sagent.agent.config.PromptConfig;
 import ai.sagesource.sagent.agent.exception.SagentPromptException;
-import ai.sagesource.sagent.agent.prompt.PromptRenderContext;
-import ai.sagesource.sagent.agent.prompt.PromptRenderer;
-import ai.sagesource.sagent.agent.prompt.PromptTemplate;
-import ai.sagesource.sagent.agent.prompt.SimplePromptRenderer;
 import ai.sagesource.sagent.agent.prompt.loader.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;

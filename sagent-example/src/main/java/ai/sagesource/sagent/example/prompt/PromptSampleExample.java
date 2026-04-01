@@ -1,7 +1,6 @@
 package ai.sagesource.sagent.example.prompt;
 
-import ai.sagesource.sagent.agent.PromptManager;
-import ai.sagesource.sagent.agent.config.PromptConfig;
+import ai.sagesource.sagent.agent.prompt.PromptManager;
 import ai.sagesource.sagent.agent.exception.SagentPromptException;
 import ai.sagesource.sagent.agent.prompt.PromptRenderContext;
 import ai.sagesource.sagent.agent.prompt.PromptRenderer;

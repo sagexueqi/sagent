@@ -22,6 +22,12 @@
             <artifactId>sagent-base</artifactId>
         </dependency>
 
+        <!-- sagent llm -->
+        <dependency>
+            <groupId>ai.sagesource.sagent</groupId>
+            <artifactId>sagent-llm</artifactId>
+        </dependency>
+
         <!-- Apache Commons Text - 用于高性能字符串替换 -->
         <dependency>
             <groupId>org.apache.commons</groupId>
