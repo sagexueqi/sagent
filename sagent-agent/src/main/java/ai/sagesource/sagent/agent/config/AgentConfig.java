@@ -55,6 +55,13 @@ public class AgentConfig {
     private final LLMCompletion<?> llmCompletion;
 
     /**
+     * 默认温度参数
+     * 控制大模型生成内容的随机性
+     */
+    @Builder.Default
+    private final float temperature = 0.7f;
+
+    /**
      * 获取默认配置
      *
      * @param name Agent名称

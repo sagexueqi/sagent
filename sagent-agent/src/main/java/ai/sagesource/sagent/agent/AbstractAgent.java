@@ -2,6 +2,10 @@ package ai.sagesource.sagent.agent;
 
 import ai.sagesource.sagent.agent.config.AgentConfig;
 import ai.sagesource.sagent.agent.config.PromptConfig;
+import ai.sagesource.sagent.agent.llm.AgentLLMRequest;
+import ai.sagesource.sagent.agent.llm.AgentLLMResponse;
+import ai.sagesource.sagent.agent.llm.AgentStreamingCallback;
+import ai.sagesource.sagent.agent.llm.AgentStreamingHandle;
 import ai.sagesource.sagent.agent.prompt.PromptManager;
 import ai.sagesource.sagent.agent.prompt.PromptRenderContext;
 import ai.sagesource.sagent.llm.completion.LLMCompletion;
@@ -13,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Agent基类
@@ -151,27 +156,80 @@ public abstract class AbstractAgent implements Agent {
      */
     protected abstract void doInitialize();
 
-    /**
-     * 创建System Message
-     * 使用已加载的System Prompt
-     *
-     * @return System消息
-     */
-    protected ChatLLMCompletionMessage createSystemMessage() {
-        ChatLLMCompletionSystemMessage message = new ChatLLMCompletionSystemMessage();
-        message.content(getSystemPrompt());
-        return message;
-    }
+    // ========== 同步调用 ==========
 
     /**
-     * 创建User Message
+     * 同步调用Agent进行思考
+     * 自动组装System Prompt和User Message，由具体子类实现LLM调用细节
      *
-     * @param content 用户输入内容
-     * @return User消息
+     * @param userInput 用户输入
+     * @return Agent层响应
      */
-    protected ChatLLMCompletionMessage createUserMessage(String content) {
-        ChatLLMCompletionUserMessage message = new ChatLLMCompletionUserMessage();
-        message.content(content);
-        return message;
-    }
+    public abstract AgentLLMResponse think(String userInput);
+
+    /**
+     * 同步调用Agent进行思考（带完整请求参数）
+     *
+     * @param request Agent层请求参数
+     * @return Agent层响应
+     */
+    public abstract AgentLLMResponse think(AgentLLMRequest request);
+
+    // ========== 异步调用 ==========
+
+    /**
+     * 异步调用Agent进行思考
+     *
+     * @param userInput 用户输入
+     * @return 异步Agent层响应
+     */
+    public abstract CompletableFuture<AgentLLMResponse> thinkAsync(String userInput);
+
+    /**
+     * 异步调用Agent进行思考（带完整请求参数）
+     *
+     * @param request Agent层请求参数
+     * @return 异步Agent层响应
+     */
+    public abstract CompletableFuture<AgentLLMResponse> thinkAsync(AgentLLMRequest request);
+
+    // ========== 流式调用 ==========
+
+    /**
+     * 流式调用Agent进行思考
+     *
+     * @param userInput 用户输入
+     * @param callback  Agent层流式回调
+     * @return Agent层流式控制句柄
+     */
+    public abstract AgentStreamingHandle thinkStreaming(String userInput, AgentStreamingCallback callback);
+
+    /**
+     * 流式调用Agent进行思考（带完整请求参数）
+     *
+     * @param request  Agent层请求参数
+     * @param callback Agent层流式回调
+     * @return Agent层流式控制句柄
+     */
+    public abstract AgentStreamingHandle thinkStreaming(AgentLLMRequest request, AgentStreamingCallback callback);
+
+    // ========== 异步流式调用 ==========
+
+    /**
+     * 异步流式调用Agent进行思考
+     *
+     * @param userInput 用户输入
+     * @param callback  Agent层流式回调
+     * @return Agent层流式控制句柄
+     */
+    public abstract AgentStreamingHandle thinkStreamAsync(String userInput, AgentStreamingCallback callback);
+
+    /**
+     * 异步流式调用Agent进行思考（带完整请求参数）
+     *
+     * @param request  Agent层请求参数
+     * @param callback Agent层流式回调
+     * @return Agent层流式控制句柄
+     */
+    public abstract AgentStreamingHandle thinkStreamAsync(AgentLLMRequest request, AgentStreamingCallback callback);
 }
