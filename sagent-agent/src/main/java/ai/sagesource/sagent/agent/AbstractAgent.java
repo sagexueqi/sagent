@@ -2,6 +2,9 @@ package ai.sagesource.sagent.agent;
 
 import ai.sagesource.sagent.agent.config.AgentConfig;
 import ai.sagesource.sagent.agent.config.PromptConfig;
+import ai.sagesource.sagent.agent.context.AgentContext;
+import ai.sagesource.sagent.agent.context.builder.ContextBuilder;
+import ai.sagesource.sagent.agent.context.builder.SimpleContextBuilder;
 import ai.sagesource.sagent.agent.llm.AgentLLMRequest;
 import ai.sagesource.sagent.agent.llm.AgentLLMResponse;
 import ai.sagesource.sagent.agent.llm.AgentStreamingCallback;
@@ -9,9 +12,7 @@ import ai.sagesource.sagent.agent.llm.AgentStreamingHandle;
 import ai.sagesource.sagent.agent.prompt.PromptManager;
 import ai.sagesource.sagent.agent.prompt.PromptRenderContext;
 import ai.sagesource.sagent.llm.completion.LLMCompletion;
-import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionMessage;
-import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionSystemMessage;
-import ai.sagesource.sagent.llm.completion.chat.models.messages.ChatLLMCompletionUserMessage;
+import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,7 +37,12 @@ public abstract class AbstractAgent implements Agent {
      * LLM Completion实例
      * 供子类与大模型交互使用
      */
-    protected final LLMCompletion<?> llmCompletion;
+    protected final LLMCompletion<ChatLLMCompletionResponse> llmCompletion;
+
+    /**
+     * Context构建器
+     */
+    protected final ContextBuilder contextBuilder;
 
     @Getter
     private volatile boolean initialized = false;
@@ -57,7 +63,10 @@ public abstract class AbstractAgent implements Agent {
                 .orElseThrow(() -> new IllegalArgumentException("AgentConfig cannot be null"));
         this.promptManager = createPromptManager(config);
         this.llmCompletion = config.getLlmCompletion();
-        log.debug("AbstractAgent created with name: {}", config.getName());
+        this.contextBuilder = Optional.ofNullable(config.getContextBuilder())
+                .orElseGet(SimpleContextBuilder::new);
+        log.debug("AbstractAgent created with name: {}, contextBuilder: {}",
+                config.getName(), this.contextBuilder.name());
     }
 
     /**
@@ -155,6 +164,51 @@ public abstract class AbstractAgent implements Agent {
      * 子类可重写此方法执行额外的初始化逻辑
      */
     protected abstract void doInitialize();
+
+    // ========== Context管理 ==========
+
+    /**
+     * 构建运行Context
+     * Agent在运行前调用此方法构建上下文
+     *
+     * @param contextId 上下文标识，可为null
+     * @return AgentContext实例
+     */
+    protected AgentContext buildContext(String contextId) {
+        AgentContext context = contextBuilder.build(contextId);
+        log.debug("Agent [{}] built context with id: {}", name(), context.contextId());
+        return context;
+    }
+
+    /**
+     * 保存Context
+     * Agent在运行结束后调用此方法保存上下文状态
+     *
+     * @param context 需要保存的上下文
+     */
+    protected void saveContext(AgentContext context) {
+        if (context != null) {
+            contextBuilder.save(context);
+            log.debug("Agent [{}] saved context with id: {}", name(), context.contextId());
+        }
+    }
+
+    /**
+     * 清除指定上下文
+     *
+     * @param contextId 上下文标识
+     */
+    protected void clearContext(String contextId) {
+        contextBuilder.clear(contextId);
+        log.debug("Agent [{}] cleared context with id: {}", name(), contextId);
+    }
+
+    /**
+     * 从Request中获取contextId
+     */
+    protected String extractContextId(AgentLLMRequest request) {
+        return request != null ? request.contextId() : null;
+    }
 
     // ========== 同步调用 ==========
 

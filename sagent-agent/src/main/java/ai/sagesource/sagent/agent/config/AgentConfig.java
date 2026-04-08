@@ -1,6 +1,9 @@
 package ai.sagesource.sagent.agent.config;
 
+import ai.sagesource.sagent.agent.context.builder.ContextBuilder;
+import ai.sagesource.sagent.agent.context.builder.SimpleContextBuilder;
 import ai.sagesource.sagent.llm.completion.LLMCompletion;
+import ai.sagesource.sagent.llm.completion.chat.models.response.ChatLLMCompletionResponse;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
@@ -52,7 +55,7 @@ public class AgentConfig {
      * LLM Completion实例
      * 用于与大模型进行交互
      */
-    private final LLMCompletion<?> llmCompletion;
+    private final LLMCompletion<ChatLLMCompletionResponse> llmCompletion;
 
     /**
      * 默认温度参数
@@ -60,6 +63,13 @@ public class AgentConfig {
      */
     @Builder.Default
     private final float temperature = 0.7f;
+
+    /**
+     * Context构建器
+     * 用于构建Agent运行时的上下文
+     */
+    @Builder.Default
+    private final ContextBuilder contextBuilder = new SimpleContextBuilder();
 
     /**
      * 获取默认配置
@@ -111,7 +121,7 @@ public class AgentConfig {
      * @param llmCompletion LLM Completion实例
      * @return 配置对象
      */
-    public static AgentConfig withLLMCompletion(String name, LLMCompletion<?> llmCompletion) {
+    public static AgentConfig withLLMCompletion(String name, LLMCompletion<ChatLLMCompletionResponse> llmCompletion) {
         return AgentConfig.builder()
                 .name(name)
                 .llmCompletion(llmCompletion)
